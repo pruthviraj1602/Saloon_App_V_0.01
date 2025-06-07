@@ -16,7 +16,7 @@ import java.util.Optional;
 public class StylistServiceImpl implements StylistService {
 
     @Autowired
-    StylistRepository stylistRepository;
+    private StylistRepository stylistRepository;
     @Override
     public Stylist addStylist(Stylist stylist) {
         return stylistRepository.save(stylist);
@@ -28,15 +28,9 @@ public class StylistServiceImpl implements StylistService {
     }
 
     @Override
-    public String deleteStylist(Long teamMemberId) {
-        stylistRepository.deleteById(teamMemberId);
-
-        if(stylistRepository.findById(teamMemberId).isEmpty()){
-            return "Stylist deleted";
-        }
-        else {
-            return "Stylist not deleted";
-        }
+    public Boolean deleteStylist(Long stylistId) {
+        Integer id = stylistRepository.deleteStylistByStylistId(stylistId);
+        return id != 0;
     }
 
     @Override

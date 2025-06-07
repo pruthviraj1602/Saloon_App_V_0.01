@@ -45,7 +45,7 @@ public class StylistController {
     }
 
 
-    @PatchMapping("/update-stylist")
+    @PutMapping("/update-stylist")
     public ResponseEntity<?> updateStylist(
             @RequestParam("stylistId") Long stylistId,
             @RequestParam("stylistName") String stylistName,

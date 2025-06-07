@@ -18,12 +18,18 @@ public class Appointment {
     private Long id;
 
     private String service;
-    private LocalDate date;
-    private LocalTime time;
-    private LocalTime endTime;
+    private String date;
+    private String time;
     private String customerName;
     private String customerContact;
-    private String status;
-    private String stylist;
+//    private String status;
+    private Double payment;
+    private String paymentType;
+
+    @ManyToOne
+    @JoinColumn(name = "stylist_id")
+    private Stylist stylist;
+
+
 
 }

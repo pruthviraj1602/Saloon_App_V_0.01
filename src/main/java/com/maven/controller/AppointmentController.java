@@ -1,118 +1,47 @@
 package com.maven.controller;
 
-import com.maven.exception.TimeSlotUnavailableException;
 import com.maven.models.Appointment;
 import com.maven.services.AppointmentService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
+import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.format.DateTimeParseException;
-import java.util.Map;
-
 @RestController
-@RequestMapping("/appointments")
-@CrossOrigin("*")
+@RequestMapping("/appointment")
+@AllArgsConstructor
 public class AppointmentController {
 
-    @Autowired
-    private AppointmentService appointmentService;
+    private final AppointmentService appointmentService;
 
-    @PostMapping("/book")
-    public ResponseEntity<?> bookAppointment(
-            @RequestParam("service") String service,
-            @RequestParam("date") String date,
-            @RequestParam("time") String time,
-            @RequestParam("stylist") String stylistName,
-            @RequestParam("customerName") String customerName,
-            @RequestParam("customerContact") String customerContact,
-            @RequestParam("status") String status) {
 
-        LocalDate appointmentDate;
-        LocalTime appointmentTime;
-        try {
-            appointmentDate = LocalDate.parse(date);
-            appointmentTime = LocalTime.parse(time);
-
-        } catch (DateTimeParseException e) {
-            return ResponseEntity.badRequest().body("Invalid date or time format. Use yyyy-MM-dd and HH:mm:ss.");
-        }
-
-        Appointment appointment = new Appointment();
-        appointment.setService(service);
-        appointment.setDate(appointmentDate);
-        appointment.setTime(appointmentTime);
-        appointment.setStylist(stylistName);
-        appointment.setCustomerName(customerName);
-        appointment.setCustomerContact(customerContact);
-        appointment.setStatus(status);
-        try {
-            Appointment booked = appointmentService.bookingAppointment(appointment);
-            return ResponseEntity.ok("Appointment booked successfully for " +
-                    booked.getDate() + " at " + booked.getTime() + ".");
-        } catch (TimeSlotUnavailableException e) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
-        }
+    @PostMapping("/add-appointment")
+    public ResponseEntity<?> addAppointment(@RequestBody Appointment appointment){
+        return ResponseEntity.ok(appointmentService.addAppointment(appointment));
     }
 
-
-    @PutMapping("/cancel")
-    public ResponseEntity<?> cancelAppointment(@RequestParam("id") Long id) {
-        try {
-            Appointment cancelled = appointmentService.cancelAppointment(id);
-            return ResponseEntity.ok("Appointment with ID " + cancelled.getId() + " cancelled successfully.");
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(404).body("Appointment not found with ID: " + id);
-        }
+    @GetMapping("/get-all-appointment")
+    public ResponseEntity<?> getAllAppointment(){
+        return ResponseEntity.ok(appointmentService.getAppointment());
     }
 
-
-    @PutMapping("/reschedule")
-    public ResponseEntity<?> rescheduleAppointment(
-            @RequestParam("id") Long id,
-            @RequestParam("newDate") String newDate,
-            @RequestParam("newTime") String newTime) {
-        try {
-            LocalDate date = LocalDate.parse(newDate);     // format: yyyy-mm-dd
-            LocalTime time = LocalTime.parse(newTime);     // format: hh:mm:ms
-
-            Appointment rescheduled = appointmentService.rescheduleAppointment(id, date, time);
-
-            return ResponseEntity.ok("Appointment rescheduled to " +
-                    rescheduled.getDate() + " at " + rescheduled.getTime());
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(404).body("Appointment not found with ID: " + id);
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body("Error during rescheduling: " + e.getMessage());
-        }
+    @GetMapping("/get-appointment")
+    public ResponseEntity<?> getAppointment(@RequestParam Long id){
+        return ResponseEntity.ok(appointmentService.getAppointment(id));
     }
 
-
-    @GetMapping("/availability")
-    public ResponseEntity<?> checkAvailability(
-            @RequestParam("service") String service,
-            @RequestParam("date") String date,
-            @RequestParam("time") String time,
-            @RequestParam("stylist") String stylist) {
-
-        try {
-            LocalDate parsedDate = LocalDate.parse(date);       // format: yyyy-mm-dd
-            LocalTime parsedTime = LocalTime.parse(time);       // format: hh:mm:ms
-
-            boolean available = appointmentService.checkAvailability(service, parsedDate, parsedTime, stylist);
-
-            return ResponseEntity.ok(available ? "Slot is available." : "Slot is already booked.");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Invalid date/time format. Use yyyy-MM-dd and HH:mm:ss");
-        }
+    @DeleteMapping("/delete-appointment")
+    public ResponseEntity<?> deleteAppointment(@RequestParam Long id){
+        return ResponseEntity.ok(appointmentService.deleteAppointment(id));
     }
 
-    @GetMapping("/total-count")
-    public ResponseEntity<?> getTotalAppointmentsCount() {
-        long count = appointmentService.countAllAppointments();
-        return ResponseEntity.ok(Map.of("totalAppointments", count));
+    @PutMapping("/update-appointment")
+    public ResponseEntity<?> updateAppointment(@RequestBody Appointment appointment){
+        return ResponseEntity.ok(appointmentService.updateAppointment(appointment));
     }
+
+    @GetMapping("/get-payment-summery")
+    public ResponseEntity<?> getPaymentSummery(){
+        return ResponseEntity.ok(appointmentService.getPayment());
+    }
+
 }

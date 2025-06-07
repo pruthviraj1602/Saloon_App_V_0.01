@@ -1,91 +1,104 @@
 package com.maven.services.impl;
 
-
 import com.maven.Repository.AppointmentRepository;
-import com.maven.exception.TimeSlotUnavailableException;
+import com.maven.Repository.StylistRepository;
 import com.maven.models.Appointment;
+import com.maven.models.Stylist;
 import com.maven.services.AppointmentService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
-import java.util.List;
-
+import java.time.format.DateTimeParseException;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
+@AllArgsConstructor
 public class AppointmentServiceImpl implements AppointmentService {
 
-    @Autowired
-    private AppointmentRepository appointmentRepository;
-
+    private final AppointmentRepository appointmentRepository;
+    private final StylistRepository stylistRepository;
 
     @Override
-    public Appointment bookingAppointment(Appointment appointment) {
-        boolean available = checkAvailability(
-                appointment.getService(),
+    public Appointment addAppointment(Appointment appointment) {
+        Optional<Stylist> stylist = stylistRepository.findById(appointment.getStylist().getStylistId());
+        boolean exists = appointmentRepository.existsByStylistStylistIdAndDateAndTime(
+                stylist.get().getStylistId(),
                 appointment.getDate(),
-                appointment.getTime(),
-                appointment.getStylist()
+                appointment.getTime()
         );
-
-        if (!available) {
-            throw new TimeSlotUnavailableException("The selected time slot is already booked.");
+        if (exists) {
+            return null;
         }
 
-
-        appointment.setEndTime(appointment.getTime().plusMinutes(30));
-
         return appointmentRepository.save(appointment);
     }
-
 
     @Override
-    public Appointment cancelAppointment(Long id) {
-        Appointment appointment = appointmentRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Appointment not found"));
-
-        appointment.setStatus("cancelled");
-        return appointmentRepository.save(appointment);
+    public List<Appointment> getAppointment() {
+        return appointmentRepository.findAll();
     }
-
 
     @Override
-    public Appointment rescheduleAppointment(Long id, LocalDate newAppointmentDate, LocalTime newAppointmentTime) {
-        Appointment appointment = appointmentRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Appointment not found"));
+    public Boolean deleteAppointment(Long id) {
+        return appointmentRepository.deleteAppointmentById(id) != 0;
+    }
 
-        appointment.setDate(newAppointmentDate);
-        appointment.setTime(newAppointmentTime);
-        appointment.setStatus("Rescheduled");
+    @Override
+    public Appointment getAppointment(Long id) {
+        return appointmentRepository.findById(id).get();
+    }
 
+    @Override
+    public Appointment updateAppointment(Appointment appointment) {
+        Optional<Stylist> stylist = stylistRepository.findById(appointment.getStylist().getStylistId());
+        boolean exists = appointmentRepository.existsByStylistStylistIdAndDateAndTime(
+                stylist.get().getStylistId(),
+                appointment.getDate(),
+                appointment.getTime()
+        );
+        if (exists) {
+            return null;
+        }
         return appointmentRepository.save(appointment);
     }
 
+    @Override
+    public Map<String, Map<String, Double>> getPayment() {
+        List<Appointment> appointments = appointmentRepository.findAll();
 
+        return appointments.stream()
+                .filter(a -> a.getPayment() != null && a.getPaymentType() != null && a.getDate() != null)
+                .map(a -> {
+                    String frequency = determineFrequency(a.getDate());
+                    return frequency.equals("unknown") ? null : new AbstractMap.SimpleEntry<>(a, frequency);
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.groupingBy(
+                        AbstractMap.SimpleEntry::getValue, // frequency
+                        Collectors.groupingBy(
+                                e -> e.getKey().getPaymentType(),
+                                Collectors.summingDouble(e -> {
+                                    try {
+                                        return e.getKey().getPayment();
+                                    } catch (NumberFormatException ex) {
+                                        return 0.0;
+                                    }
+                                })
+                        )
+                ));
 
-    public boolean checkAvailability(String service, LocalDate date, LocalTime time, String stylist) {
-        LocalTime newEndTime = time.plusMinutes(30);
-        List<Appointment> appointments = appointmentRepository.findByStylistAndDate(stylist, date);
-
-        for (Appointment existing : appointments) {
-            LocalTime existingStart = existing.getTime();
-            LocalTime existingEnd = existingStart.plusMinutes(30);
-
-            boolean overlap = time.isBefore(existingEnd) && newEndTime.isAfter(existingStart);
-            if (overlap) {
-                return false;
-            }
+    }
+    private String determineFrequency(String dateStr) {
+        try {
+            LocalDate date = LocalDate.parse(dateStr);
+            LocalDate today = LocalDate.now();
+            return date.equals(today) ? "daily" : "monthly";
+        } catch (DateTimeParseException e) {
+            System.err.println("Invalid date format: " + dateStr);
+            return "unknown";
         }
 
-        return true;
     }
-
-    @Override
-    public long countAllAppointments() {
-        return appointmentRepository.count();
-    }
-
-
 }
-

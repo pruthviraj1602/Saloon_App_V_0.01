@@ -12,7 +12,7 @@ public interface StylistService {
 
     Stylist updateStylist(Stylist stylist) throws IOException;
 
-    String deleteStylist(Long Stylist_id);
+    Boolean deleteStylist(Long Stylist_id);
 
     List<StylistDto> getAllStylist();
 

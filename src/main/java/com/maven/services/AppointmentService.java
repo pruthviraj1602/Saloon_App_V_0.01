@@ -1,26 +1,21 @@
 package com.maven.services;
 
 import com.maven.models.Appointment;
-import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
-import java.time.LocalTime;
+import java.util.List;
+import java.util.Map;
 
+public interface AppointmentService {
 
-@Service
-public interface AppointmentService  {
+    Appointment addAppointment(Appointment appointment);
 
+    List<Appointment> getAppointment();
 
-    Appointment bookingAppointment (Appointment appointment);
+    Appointment getAppointment(Long id);
 
-    Appointment cancelAppointment(Long id);
+    Boolean deleteAppointment(Long id);
 
-    Appointment rescheduleAppointment(Long id, LocalDate newAppointmentDate, LocalTime newAppointmentTime);
+    Appointment updateAppointment(Appointment appointment);
 
-    boolean checkAvailability(String service, LocalDate date, LocalTime time, String stylist);
-
-    long countAllAppointments();
-
-
+    Map<String, Map<String, Double>> getPayment();
 }
-
